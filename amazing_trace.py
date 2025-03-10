@@ -18,21 +18,14 @@ def execute_traceroute(destination):
         str: The raw output from the traceroute command
     """
     
-    try:
-        result = subprocess.run(["traceroute", destination], capture_output=True, text=True, check=True)
-        return result.stdout
-    except subprocess.CalledProcessError as e:
-        print(f"Error executing traceroute: {e}")
-        return ""
-
-    # Your code here
-    # Hint: Use the subprocess module to run the traceroute command
-    # Make sure to handle potential errors
-
-    # Remove this line once you implement the function,
-    # and don't forget to *return* the output
-    pass
-
+    # try:
+    # Runs traceroute command. 
+    result = subprocess.run(["traceroute", "-I", destination], capture_output=True, text=True, check=True)
+    return result.stdout
+    # except subprocess.CalledProcessError as e:
+    #     print(f"Error executing traceroute: {e}")
+    #     return ""
+    
 def parse_traceroute(traceroute_output):
     """
     Parses the raw traceroute output into a structured format.
@@ -72,8 +65,11 @@ def parse_traceroute(traceroute_output):
     ```
     """
 
+    print(traceroute_output)
+
     hops = []
-    for line in traceroute_output.splitlines()[1:]:  # Skip the header line
+    for line in traceroute_output.splitlines()[1:]:
+        # Uses Regex module to match hop, hostname, ip, and round trip time (rtt)
         match = re.match(r"(\d+)\s+(\S+)\s+\((\d+\.\d+\.\d+\.\d+)\)\s+([\d\.]+) ms", line)
         if match:
             hop, hostname, ip, rtt = match.groups()
@@ -83,6 +79,7 @@ def parse_traceroute(traceroute_output):
                 'hostname': hostname if hostname != ip else None,
                 'rtt': [float(rtt)]
             })
+        # Puts none if match is not found. 
         else:
             hops.append({
                 'hop': len(hops) + 1,
@@ -91,14 +88,6 @@ def parse_traceroute(traceroute_output):
                 'rtt': [None]
             })
     return hops
-
-    # Your code here
-    # Hint: Use regular expressions to extract the relevant information
-    # Handle timeouts (asterisks) appropriately
-
-    # Remove this line once you implement the function,
-    # and don't forget to *return* the output
-    pass
 
 # ============================================================================ #
 #                    DO NOT MODIFY THE CODE BELOW THIS LINE                    #
