@@ -4,6 +4,8 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 import time
 import os
+import subprocess
+import re
 
 def execute_traceroute(destination):
     """
@@ -15,6 +17,14 @@ def execute_traceroute(destination):
     Returns:
         str: The raw output from the traceroute command
     """
+    
+    try:
+        result = subprocess.run(["traceroute", destination], capture_output=True, text=True, check=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing traceroute: {e}")
+        return ""
+
     # Your code here
     # Hint: Use the subprocess module to run the traceroute command
     # Make sure to handle potential errors
@@ -61,6 +71,27 @@ def parse_traceroute(traceroute_output):
         ]
     ```
     """
+
+    hops = []
+    for line in traceroute_output.splitlines()[1:]:  # Skip the header line
+        match = re.match(r"(\d+)\s+(\S+)\s+\((\d+\.\d+\.\d+\.\d+)\)\s+([\d\.]+) ms", line)
+        if match:
+            hop, hostname, ip, rtt = match.groups()
+            hops.append({
+                'hop': int(hop),
+                'ip': ip,
+                'hostname': hostname if hostname != ip else None,
+                'rtt': [float(rtt)]
+            })
+        else:
+            hops.append({
+                'hop': len(hops) + 1,
+                'ip': None,
+                'hostname': None,
+                'rtt': [None]
+            })
+    return hops
+
     # Your code here
     # Hint: Use regular expressions to extract the relevant information
     # Handle timeouts (asterisks) appropriately
