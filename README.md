@@ -18,6 +18,12 @@ The `parse_traceroute` function returns a list of dictionaries, each containing:
 
 ### Running the Code
 
+Run the following command to run the python script:
+
+```python
+python3 amazing_trace.py
+```
+
 ### Dependencies
 
 Ensure `traceroute` is installed on your system. The script uses:

@@ -65,7 +65,7 @@ def parse_traceroute(traceroute_output):
     hops = []
 
     # Regex pattern to capture hop data
-    # Order: group 1 (hop), group 2 (ip), group 3 (hostname), group 4 (rrt)
+    # Order: group 1 (hop), group 2 (hostname), group 3 (ip), group 4 (rrt)
     pattern = r'(\d+)\s+([^\s]+)\s+\(([^)]+)\)\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+\*+|\s*)'
 
     # Process each line of traceroute output
