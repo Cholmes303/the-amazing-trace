@@ -17,14 +17,10 @@ def execute_traceroute(destination):
     Returns:
         str: The raw output from the traceroute command
     """
-    
-    # try:
+
     # Runs traceroute command. 
     result = subprocess.run(["traceroute", "-I", destination], capture_output=True, text=True, check=True)
     return result.stdout
-    # except subprocess.CalledProcessError as e:
-    #     print(f"Error executing traceroute: {e}")
-    #     return ""
     
 def parse_traceroute(traceroute_output):
     """
@@ -65,27 +61,42 @@ def parse_traceroute(traceroute_output):
     ```
     """
 
-    print(traceroute_output)
-
+    # Initialize an empty list to store hop data
     hops = []
-    for line in traceroute_output.splitlines()[1:]:
-        # Uses Regex module to match hop, hostname, ip, and round trip time (rtt)
-        match = re.match(r"(\d+)\s+(\S+)\s+\((\d+\.\d+\.\d+\.\d+)\)\s+([\d\.]+) ms", line)
+
+    # Regex pattern to capture hop data
+    # Order: group 1 (hop), group 2 (ip), group 3 (hostname), group 4 (rrt)
+    pattern = r'(\d+)\s+([^\s]+)\s+\(([^)]+)\)\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+\*+|\s*)'
+
+    # Process each line of traceroute output
+    for line in traceroute_output.splitlines():
+        # Match is used to find the start of the string. Strip() is used to make each individual "word" its own line.
+        match = re.match(pattern, line.strip())
+
+        # Groups each piece of data in trace route by Regex pattern.
         if match:
-            hop, hostname, ip, rtt = match.groups()
+            hop = int(match.group(1))
+            hostname = match.group(2) 
+            ip = match.group(3)
+            rtt_values_str = match.group(4)
+
+            # Handles timeout cases (noted by asterisks "*")
+            if '*' in rtt_values_str:
+                rtt = [None, None, None]  # Timeout case
+            else:
+                # Parse the rtt values (remove 'ms' and convert to float)
+                rtt = [float(rtt.strip()) for rtt in rtt_values_str.split('ms') if rtt.strip()]
+
+            # Handle the case when hostname is the same as IP
+            if hostname == ip:
+                hostname = None
+
+            # Create dictionary of hop data and move dictionary into list. 
             hops.append({
-                'hop': int(hop),
+                'hop': hop,
                 'ip': ip,
-                'hostname': hostname if hostname != ip else None,
-                'rtt': [float(rtt)]
-            })
-        # Puts none if match is not found. 
-        else:
-            hops.append({
-                'hop': len(hops) + 1,
-                'ip': None,
-                'hostname': None,
-                'rtt': [None]
+                'hostname': hostname,
+                'rtt': rtt
             })
     return hops
 
