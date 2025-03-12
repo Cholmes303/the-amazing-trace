@@ -4,6 +4,8 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 import time
 import os
+import subprocess
+import re
 
 def execute_traceroute(destination):
     """
@@ -15,14 +17,11 @@ def execute_traceroute(destination):
     Returns:
         str: The raw output from the traceroute command
     """
-    # Your code here
-    # Hint: Use the subprocess module to run the traceroute command
-    # Make sure to handle potential errors
 
-    # Remove this line once you implement the function,
-    # and don't forget to *return* the output
-    pass
-
+    # Runs traceroute command. 
+    result = subprocess.run(["traceroute", "-I", destination], capture_output=True, text=True, check=True)
+    return result.stdout
+    
 def parse_traceroute(traceroute_output):
     """
     Parses the raw traceroute output into a structured format.
@@ -61,13 +60,45 @@ def parse_traceroute(traceroute_output):
         ]
     ```
     """
-    # Your code here
-    # Hint: Use regular expressions to extract the relevant information
-    # Handle timeouts (asterisks) appropriately
 
-    # Remove this line once you implement the function,
-    # and don't forget to *return* the output
-    pass
+    # Initialize an empty list to store hop data
+    hops = []
+
+    # Regex pattern to capture hop data
+    # Order: group 1 (hop), group 2 (hostname), group 3 (ip), group 4 (rrt)
+    pattern = r'(\d+)\s+([^\s]+)\s+\(([^)]+)\)\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+\*+|\s*)'
+
+    # Process each line of traceroute output
+    for line in traceroute_output.splitlines():
+        # Match is used to find the start of the string. Strip() is used to make each individual "word" its own line.
+        match = re.match(pattern, line.strip())
+
+        # Groups each piece of data in trace route by Regex pattern.
+        if match:
+            hop = int(match.group(1))
+            hostname = match.group(2) 
+            ip = match.group(3)
+            rtt_values_str = match.group(4)
+
+            # Handles timeout cases (noted by asterisks "*")
+            if '*' in rtt_values_str:
+                rtt = [None, None, None]  # Timeout case
+            else:
+                # Parse the rtt values (remove 'ms' and convert to float)
+                rtt = [float(rtt.strip()) for rtt in rtt_values_str.split('ms') if rtt.strip()]
+
+            # Handle the case when hostname is the same as IP
+            if hostname == ip:
+                hostname = None
+
+            # Create dictionary of hop data and move dictionary into list. 
+            hops.append({
+                'hop': hop,
+                'ip': ip,
+                'hostname': hostname,
+                'rtt': rtt
+            })
+    return hops
 
 # ============================================================================ #
 #                    DO NOT MODIFY THE CODE BELOW THIS LINE                    #
