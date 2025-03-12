@@ -12,7 +12,7 @@ This project runs a script that executes and parses traceroute outputs while pro
 ## Functions Implemented
 
 ### `execute_traceroute(destination)`
-Executes a traceroute command and returns the output. The -I command is to change the default UDP packets that are being used to ICMP packets. The reason ICMP packers are used over UDP packets is due to UDP packets being used to quickly transfer data. However, here we want to trouble shoot a path which ICMP packets are made to do. Another note, -i is not the same as -I when being used with traceroute. The -i command expects an interface name (ex. eth0). Here is the function: 
+Executes a traceroute command and returns the output. The -I command is to change the default UDP packets that are being used to ICMP packets. The reason ICMP packets are used over UDP packets is due to UDP packets being used to quickly transfer data. However, here we want to map a path which ICMP packets are made to do (ICMP packets are also used to trouble shoot network problems). Another note, -i is not the same as -I when being used with traceroute. The -i command will expect an interface name (ex. eth0). Here is the function: 
 ```python
 def execute_traceroute(destination):
 
@@ -22,19 +22,19 @@ def execute_traceroute(destination):
 ```
 
 ### `parse_traceroute(traceroute_output)`
-Parses traceroute output into structured data to be graphed:
+This function parses ```traceroute_output``` into a list of dictionary data to be graphed:
 - `hop`: Hop number (integer)
 - `ip`: IP address of the router (string or `None` if unavailable)
 - `hostname`: Hostname (string or `None` if same as IP)
-- `rtt`: List of round-trip times in milliseconds (`None` for timeouts)
+- `rtt`: List of round trip times in milliseconds (`None` for timeouts)
 
 For this function, it is important that I explain two main things: why use the ```re.match()``` function and the regex ```.group()``` function. Before explaining these though, there will be more on the regex string that extracts the data from the traceroute output later on in the README. 
 
-#### re.match()
-Now, ```re.match()``` is a function that will match the regex string ```pattern = r'(\d+)\s+([^\s]+)\s+\(([^)]+)\)\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+\*+|\s*)'``` to the output of traceroute resulting in extracting the desired information from the string. The function only matches with the beginning of the string which is why I have split the output of traceroute multiple times. More on the ```re.match()``` function can be found [here](https://www.geeksforgeeks.org/re-match-in-python/). 
+### re.match()
+```re.match()``` is a function that will match the regex string: ```pattern = r'(\d+)\s+([^\s]+)\s+\(([^)]+)\)\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+\*+|\s*)'``` to the output of traceroute resulting in extracting the desired information from the string. The function only checks for matches only at the beginning of the string which is why I have split the output of traceroute multiple times. More on the ```re.match()``` function can be found [here](https://www.geeksforgeeks.org/re-match-in-python/). 
 
-#### .group()
-Continuing onto the ```.group()``` function, this function is used to find specific groups within the matched regex string. Groups are defined in the regex string by surrounding "()". For example in the first part of the string: ```r'(\d+)\s+...'``` the first group is defined as ```\d+``` because it is surrounded by "()". This continues on for the rest of the string. More on the ```.group()``` function can be found [here](https://www.geeksforgeeks.org/re-matchobject-group-function-in-python-regex/). Something to note is for the IP address section there are "()" that are escaped by a "\". This is done so the IP address when matched is surrounded by () when bring put into the dictionary that will be appended to the list hops. As mentioned before, there will be an indepth explanation of the regex string found below due to the complexity. 
+### .group()
+ The ```.group()``` function, this function is used to find specific groups within the matched regex string. Groups are defined in the regex string by surrounding `()`. For example in the first part of the string: `r'(\d+)\s+...'` the first group is defined as `\d+` because it is surrounded by `()`. This continues on for the rest of the string. More on the `.group()` function can be found [here](https://www.geeksforgeeks.org/re-matchobject-group-function-in-python-regex/). Something to note is for the IP address section there are `()` that are escaped by a `\`. This is done so the IP address when matched is surrounded by `()` when bring put into the dictionary that will be appended to the list hops. As mentioned before, there will be an indepth explanation of the regex string found below due to the complexity. 
 
 ### Back to the function
 Here is the function:
@@ -83,8 +83,25 @@ def parse_traceroute(traceroute_output):
 
 ### `visualize_traceroute(destination, num_traces=3, interval=5, output_dir='output')`
 - Runs multiple traceroutes to analyze routing stability.
-- Plots hop count vs. average RTT over multiple traces.
+- Plots hop count vs. average rtt over multiple traces.
 - Saves the output visualization as a PNG file.
+
+## Dependencies
+A Vagrant file, that is attached to the repository, is used to create a virtual machine (VM) that installs all dependencies needed. [Here](https://developer.hashicorp.com/vagrant/install) is the website to install and use Vagrant. Here are some useful Vagrant commands:
+ - `vagrant init` creates a vagrant file where VM contents can be edited. This is not necessary for this project as a file has already been created
+ - `vagrant up` boots the VM up headlessly
+ - `vagrant ssh` logs you into the VM instance
+ - `vagrant halt` stops the VM, tries to gracefully
+ - `vagrant destroy` removes the created VM
+
+A VM is required to run Vagrant. I suggest [Oracle VM](https://www.oracle.com/virtualization/technologies/vm/downloads/virtualbox-downloads.html) as it provides access to mulitple operating systems (OS) and VMs that you wish to use. 
+
+If you do not wish to use Vagrant then ensure the following dependencies are installed:
+- Python 3
+- `matplotlib`, `pandas`, `numpy`
+- `subprocess` for executing commands (installed with Python's library)
+- `re` for parsing output (installed with Python's library)
+- `traceroute` (ensure it is installed on your system)
 
 ## Accessing the Script
 To access this script you will need to clone down the repository. Run the following command in a terminal to do so:
@@ -93,25 +110,43 @@ git clone https://github.com/WTCSC/the-amazing-trace-Cholmes303.git
 ```
 
 ## Running the Code
-Once you have cloned the repository nagivate to the correct directory and run the script. Here is the command to run the code:
+Once you have cloned the repository nagivate to the correct directory and run the script. There are two ways that this can be done depending on if you have decided to use vagrant or not.
+
+### How to run the code using Vagrant
+Once in the correct directory run the command:
+```sh
+vagrant up
+```
+
+This will boot the VM. Next run the command to login to the VM:
+```sh
+vagrant ssh
+```
+
+Once in the VM instance, navigate to the vagrant file directory. This can be a little confusing at first. You will have to move back two directories using the following command **two times**:
+```sh
+cd ..
+```
+
+Then use the following command to enter into the vagrant directory:
+```sh
+cd vagrant
+```
+
+Finally, run the following command to execute the script:
 ```sh
 python3 amazing_trace.py
 ```
 
-## Dependencies
-A Vagrant file, that is attached to the repository, is used to create a virtual machine (VM) that installs all dependecies needed. [Here](https://developer.hashicorp.com/vagrant/install) is the website to install and use Vagrant.
-A VM is required to run Vagrant. I suggest [Oracle VM](https://www.oracle.com/virtualization/technologies/vm/downloads/virtualbox-downloads.html) as it provides access to mulitple operating systems (OS) and VMs that you wish to use. 
-
-If you do not wish to use Vagrant then ensure the following are installed:
-- Python 3
-- `matplotlib`, `pandas`, `numpy`
-- `subprocess` for executing commands (installed with Python's library)
-- `re` for parsing output (installed with Python's library)
-- `traceroute` (ensure it is installed on your system)
+### How to run the code on directly on your Machine
+Ensuring that you have all dependencies installed on your machine run the following command to execute the script:
+```sh
+python3 amazing_trace.py
+```
 
 ## Expected Output
 - A structured output of traceroute results including hops, IPs, hostnames, and round trip times (rtt).
-- A visualization of traceroute paths saved in the `output/` directory.
+- A visualization (PNG file) of traceroute paths saved in the `output/` directory.
 
 ## Example Usage
 By default, the script traces routes to:
@@ -134,20 +169,22 @@ if __name__ == "__main__":
 Edit each string to whatever website you would like. 
 
 ## Regex Explanation
-Regex came as a very complex but very useful module inside of the Python library. I will explain how my regex function works and provide resources in hopes that they will help you understand the tools that regex provides. The following regex pattern is used to parse the traceroute output:
+Regex came as a very complex but very useful module inside of the Python library. I will explain how my regex function works and provide resources in hopes that it will help you understand the tools that regex provides. The following regex pattern is used to parse the traceroute output:
 ```python
 pattern = r'(\d+)\s+([^\s]+)\s+\(([^)]+)\)\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+\*+|\s*)'
 ```
 
 ### Breakdown:
-- `(\d+)` - Captures the hop number (the "\d" indicates any number 0-9 and the "+" indicates one or more digits).
+- `(\d+)` - Captures the hop number (the `\d` indicates any number 0-9 and the `+` indicates one or more digits).
 - `\s+` - Matches one or more whitespace characters.
 - `([^\s]+)` - Captures the hostname (a string without spaces).
-- `\s+\(([^)]+)\)` - Captures the IP address inside parentheses (the "\" is used around the parathesis to escape them).
+- `\s+\(([^)]+)\)` - Captures the IP address inside parentheses (the `\` is used around the parathesis to escape them).
 - `\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+\*+|\s*)` - Captures the round-trip times (rtt) or asterisks indicating timeouts (the "|" means or):
   - `(?:\d+\.\d+\s+ms\s+)+` - Matches rtt values (e.g., `12.3 ms 15.6 ms`).
   - `\*+\s+\*+\s+\*+` - Matches `* * *` for timeouts.
   - `\s*` - Matches optional whitespace for cases with missing rtt values.
 
-This regex string is what extracts the data from the ```traceroute_output``` variable. More on regex can be found [here](https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference). Additionally [here](https://regex101.com/) is a website that can explain regex code in real time. Regex was most definitely the biggest challenge when writing this script, I hope this helps. 
+This regex string is what extracts the data from the `traceroute_output` variable. More on regex can be found [here](https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference). Additionally [here](https://regex101.com/) is a website that can explain regex code in real time. Regex was most definitely the biggest challenge when writing this script, I hope this helps. 
 
+## Conlcusion
+This script was made to create a visual representation of the traceroute command by parsing the output from traceroute. I hope that this indepth explanation has created a deeper understanding of this script and how the code works. 
