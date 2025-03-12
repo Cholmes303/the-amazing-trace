@@ -22,11 +22,64 @@ def execute_traceroute(destination):
 ```
 
 ### `parse_traceroute(traceroute_output)`
-Parses traceroute output into structured data:
+Parses traceroute output into structured data to be graphed:
 - `hop`: Hop number (integer)
 - `ip`: IP address of the router (string or `None` if unavailable)
 - `hostname`: Hostname (string or `None` if same as IP)
 - `rtt`: List of round-trip times in milliseconds (`None` for timeouts)
+
+For this function, it is important that I explain two main things: why use the ```re.match()``` function and the regex ```.group()``` function. Before explaining these though, there will be more on the regex string that extracts the data from the traceroute output later on in the README. 
+
+#### re.match()
+Now, ```re.match()``` is a function that will match the regex string ```pattern = r'(\d+)\s+([^\s]+)\s+\(([^)]+)\)\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+\*+|\s*)'``` to the output of traceroute resulting in extracting the desired information from the string. The function only matches with the beginning of the string which is why I have split the output of traceroute multiple times. More on the ```re.match()``` function can be found [here](https://www.geeksforgeeks.org/re-match-in-python/). 
+
+#### .group()
+Continuing onto the ```.group()``` function, this function is used to find specific groups within the matched regex string. Groups are defined in the regex string by surrounding "()". For example in the first part of the string: ```r'(\d+)\s+...'``` the first group is defined as ```\d+``` because it is surrounded by "()". This continues on for the rest of the string. More on the ```.group()``` function can be found [here](https://www.geeksforgeeks.org/re-matchobject-group-function-in-python-regex/). Something to note is for the IP address section there are "()" that are escaped by a "\". This is done so the IP address when matched is surrounded by () when bring put into the dictionary that will be appended to the list hops. As mentioned before, there will be an indepth explanation of the regex string found below due to the complexity. 
+
+### Back to the function
+Here is the function:
+```python
+def parse_traceroute(traceroute_output):
+    # Initialize an empty list to store hop data
+    hops = []
+
+    # Regex pattern to capture hop data
+    # Order: group 1 (hop), group 2 (hostname), group 3 (ip), group 4 (rrt)
+    pattern = r'(\d+)\s+([^\s]+)\s+\(([^)]+)\)\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+\*+|\s*)'
+
+    # Process each line of traceroute output
+    for line in traceroute_output.splitlines():
+        # Match is used to find the start of the string. Strip() is used to make each individual "word" its own line.
+        match = re.match(pattern, line.strip())
+
+        # Groups each piece of data in trace route by Regex pattern.
+        if match:
+            hop = int(match.group(1))
+            hostname = match.group(2) 
+            ip = match.group(3)
+            rtt_values_str = match.group(4)
+
+            # Handles timeout cases (noted by asterisks "*")
+            if '*' in rtt_values_str:
+                rtt = [None, None, None]  # Timeout case
+            else:
+                # Parse the rtt values (remove 'ms' and convert to float)
+                rtt = [float(rtt.strip()) for rtt in rtt_values_str.split('ms') if rtt.strip()]
+
+            # Handle the case when hostname is the same as IP
+            if hostname == ip:
+                hostname = None
+
+            # Create dictionary of hop data and move dictionary into list. 
+            hops.append({
+                'hop': hop,
+                'ip': ip,
+                'hostname': hostname,
+                'rtt': rtt
+            })
+    return hops
+
+```
 
 ### `visualize_traceroute(destination, num_traces=3, interval=5, output_dir='output')`
 - Runs multiple traceroutes to analyze routing stability.
@@ -96,5 +149,5 @@ pattern = r'(\d+)\s+([^\s]+)\s+\(([^)]+)\)\s+((?:\d+\.\d+\s+ms\s+)+|\*+\s+\*+\s+
   - `\*+\s+\*+\s+\*+` - Matches `* * *` for timeouts.
   - `\s*` - Matches optional whitespace for cases with missing rtt values.
 
-This regex string is what extracts the data from the traceroute_output variable. More on regex can be found [here](https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference). Additionally [here](https://regex101.com/) is a website that can explain regex code in real time. Regex was most definitely the biggest challenge when writing this script, I hope this helps. 
+This regex string is what extracts the data from the ```traceroute_output``` variable. More on regex can be found [here](https://learn.microsoft.com/en-us/dotnet/standard/base-types/regular-expression-language-quick-reference). Additionally [here](https://regex101.com/) is a website that can explain regex code in real time. Regex was most definitely the biggest challenge when writing this script, I hope this helps. 
 
